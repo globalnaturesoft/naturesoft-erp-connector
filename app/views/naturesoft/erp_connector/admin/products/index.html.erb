@@ -1,0 +1,286 @@
+<% title "ERP Connector - Products Import" %>
+  
+  
+  <div class="panel panel-flat border-top-primary">
+      <div class="panel-body filter-box">
+          <div class="row">
+            <form action="" method="GET">
+              <div class="col-md-4">
+                  <div class="form-group has-feedback">
+                      <input type="text" name="keyword" class="form-control" placeholder="keyword..." value="<%= params[:keyword] %>">
+                      <div class="form-control-feedback">
+                          <i class="icon-search4 text-size-base"></i>
+                      </div>
+                  </div>
+              </div>
+              <div class="col-md-1 text-right">
+                Page:
+              </div>
+              <div class="col-md-2">
+                  <div class="form-group has-feedback">
+                      <%= select_tag("page",
+                          options_for_select((0..100).collect{ |u| [u+1, u+1] }, params[:page]),
+                          {
+                            class: "select2",
+                          }
+                        ) %>
+                  </div>
+              </div>
+              <div class="col-md-4">
+                <div class="form-group">
+                  <button type="submit" class="btn btn-primary">Search</button>
+                </div>
+              </div>
+            </form>
+          </div>
+      </div>
+  </div>
+  
+  <!-- Basic datatable -->
+  <div class="panel panel-flat">
+    <div class="table-container">
+      <table class="table table-striped">
+        <thead>
+          <tr class="bg-teal-800">
+              <th>From ERP</th>
+              <th width="80%"><%= t(:import) %></th>
+          </tr>
+        </thead>
+        <tbody>          
+          <% @products["products"].each_with_index do |item,index| %>
+          <%
+            product = Naturesoft::Products::Product.where(erp_id: item["id"]).first
+            if product.nil?
+              product = Naturesoft::Products::Product.new(
+                          erp_id: item["id"],
+                          name: item["name"],
+                          new_price: item["price"],
+                          code: item["product_code"],
+                          quantity: item["stock"],
+                          unit: item["unit"],
+                          code: item["product_code"],
+                        )
+            end
+          %>     
+            <tr>
+              <td style="vertical-align: top">
+                <strong>#<%= item["id"] %></strong>
+                <br />
+                <div class="text-semibold"><%= item["display_name"] %></div>
+                <%= item["description"] %>                
+              </td>
+              <td>
+                <% if !product.id.nil? %>
+                  <div class="alert alert-info">
+                    This product has already imported! <span class="btn btn-xs btn-info no-tab" onclick="$(this).parents('td').find('.tabbable').toggle()" href="edit">Edit</span>
+                  </div>
+                <% else %>
+                  <div class="alert alert-danger">
+                    This product has not imported! <span class="btn btn-xs btn-info no-tab" onclick="$(this).parents('td').find('.tabbable').toggle()" href="edit">Edit</span>
+                  </div>
+                <% end %>
+                <%= form_for([naturesoft_products, :admin, product], html: {class: "form-horizontal validate erp-ajax-submit", multipart: true, target: "_blank"}) do |f| %>    
+                  <div class="tabbable tab-content-bordered" <%= 'style="display: none"'.html_safe %> >
+                    <ul class="nav nav-tabs bg-primary">
+                        <li class="active"><a href="#control-tab1<%= index %>" data-toggle="tab"><%= t(:infomations) %></a></li>
+                        <li><a href="#description-tab<%= index %>" data-toggle="tab"><%= t(:description) %> </a></li>
+                        <li><a href="#control-tab2<%= index %>" data-toggle="tab"><%= t(:images) %> </a></li>
+                        <li><a href="#control-tab3<%= index %>" data-toggle="tab"><%= t(:discount) %> </a></li>
+                        <li><a href="#control-tab4<%= index %>" data-toggle="tab"><%= t(:property) %> </a></li>
+                    </ul>
+                    <div class="tab-content">
+                        <div class="tab-pane has-padding active" id="control-tab1<%= index %>">
+                            
+                            
+                            <%= f.hidden_field :erp_id %>
+                             <div class="form-group">
+                                 <label class="col-md-2 control-label" ><%= t(:name) %> <span class='text-danger'>*</span></label>
+                                 <div class="col-md-10">
+                                     <%= f.text_field :name, class: "form-control required" %>
+                                 </div>
+                             </div>
+                                 
+                             <div class="form-group">
+                                 <label class="col-md-2 control-label" ><%= t(:code) %> <span class='text-danger'>*</span></label>
+                                 <div class="col-md-10">
+                                     <%= f.text_field :code, class: "form-control required" %>
+                                 </div>
+                             </div>
+                             
+                             <div class="form-group">
+                                 <label class="col-md-2 control-label" ><%= t(:price) %> <span class='text-danger'>*</span></label>
+                                 <div class="col-md-10">
+                                     <%= f.text_field :new_price, class: "form-control number_input required" %>
+                                 </div>
+                             </div>
+                                 
+                             <div class="form-group">
+                                 <label class="col-md-2 control-label" ><%= t(:quantity) %> <span class='text-danger'>*</span></label>
+                                 <div class="col-md-10">
+                                     <%= f.text_field :quantity, class: "form-control number_input required" %>
+                                 </div>
+                             </div>
+                                 
+                             <div class="form-group">
+                                 <label class="col-md-2 control-label" ><%= t(:unit) %> <span class='text-danger'>*</span></label>
+                                 <div class="col-md-10">
+                                     <%= f.text_field :unit, class: "form-control required" %>
+                                 </div>
+                             </div>
+                                 
+                             <div class="form-group">
+                               <label class="col-md-2 control-label" ><%= t(:manufacturer) %> <span class='text-danger'>*</span></label>
+                               <div class="col-md-10">
+                                 <div class="input-group">
+                                     <!--<%= f.collection_select(:manufacturer_id, Naturesoft::Products::Manufacturer.all, :id, :name, {:prompt=> "Choose manufacturer..."}, {class: "select2 required"}) %>-->
+                                     
+                                     <% selected = options_for_select([[product.manufacturer.name, product.manufacturer_id]], product.manufacturer_id) if product.manufacturer.present? %>
+                                     <%= select_tag("product[manufacturer_id]",
+                                       selected,
+                                       {
+                                         class: "select2-ajax required",
+                                         include_blank: "none",
+                                         "data-url": naturesoft_products.select2_admin_manufacturers_path,
+                                       }
+                                     ) %>
+                                     <span class="input-group-btn">
+                                       <a class="btn btn-info" href="<%= naturesoft_products.new_admin_manufacturer_path %>"><i class="icon-plus2"></i></a>
+                                     </span>
+                                 </div>
+                               </div>
+                             </div>
+                               
+                             <div class="form-group field">
+                                 <label class="col-md-2 control-label" ><%= t(:category) %> <span class='text-danger'>*</span></label>
+                                 <div class="col-md-10">
+                                   <div class="input-group">
+                                       <% selected = options_for_select((product.categories.map {|c| [c.name, c.id]}),product.categories.map(&:id)) %>
+                                       <%= select_tag("category_ids[]",
+                                         selected,
+                                         {
+                                           class: "select2-ajax required",
+                                           include_blank: "none",
+                                           multiple: "multiple",
+                                           "data-url": naturesoft_products.select2_admin_categories_path,
+                                         }
+                                       ) %>
+                                       <span class="input-group-btn">
+                                         <a class="btn btn-info" href="<%= naturesoft_products.new_admin_category_path %>"><i class="icon-plus2"></i></a>
+                                       </span>
+                                   </div>
+                                 </div>
+                             </div>
+                                 
+                             <div class="form-group field">
+                                 <label class="col-md-2 control-label" ><%= t(:label) %> </label>
+                                 <div class="col-md-10">
+                                   <div class="input-group">
+                                     <% selected = options_for_select((product.labels.map {|c| [c.name, c.id]}),product.labels.map(&:id)) %>
+                                     <%= select_tag("label_ids[]",
+                                       selected,
+                                       {
+                                         class: "select2-ajax",
+                                         include_blank: "none",
+                                         multiple: "multiple",
+                                         "data-url": naturesoft_products.select2_admin_labels_path,
+                                       }
+                                     ) %>
+                                     <span class="input-group-btn">
+                                       <a class="btn btn-info" href="<%= naturesoft_products.new_admin_label_path %>"><i class="icon-plus2"></i></a>
+                                     </span>
+                                   </div>
+                                 </div>
+                             </div>
+                               
+                             <div class="form-group">
+                                 <label class="col-md-2 control-label" ><%= t(:short_description) %> <!--<span class='text-danger'>*</span>--></label>
+                                 <div class="col-md-10">
+                                     <%= f.text_area :short_description, rows: "5", cols: "5", class: "form-control editor_2" %>
+                                 </div>
+                             </div>
+             
+                              
+                          </div>
+             
+                         <div class="tab-pane has-padding" id="description-tab<%= index %>">
+                           <div class="form-group">
+                             <div class="col-md-12">
+                               <%= f.text_area :description, rows: "4", cols: "4", class: "editor" %>
+                             </div>
+                           </div>
+                         </div>
+                              
+                         <div class="tab-pane has-padding addable-form" data-sample="image-form" id="control-tab2<%= index %>">
+                           <div class="addable-container">
+                             <% product.images.each_with_index do |image,index| %>
+                               <%= render "naturesoft/products/admin/products/image_form", item: image, index: index %>
+                             <% end %>
+                           </div>
+                           <div class="row">
+                             <div class="col-md-2">
+                               <div class="text-left">
+                                 <a href="#add" class="btn btn-info addable-add"><%= t(:add_image) %> <i class="icon-plus2 position-center"></i></a>
+                               </div>
+                             </div>
+                           </div>
+                         </div>
+                         
+                         <div class="tab-pane has-padding" id="control-tab3<%= index %>">
+                             <div class="form-group">
+                                 <label class="col-md-2 control-label" ><%= t(:discount) %> </label>
+                                 <div class="col-md-10">
+                                     <%= f.text_field :discount, class: "form-control number_input" %>
+                                 </div>
+                             </div>
+                                 
+                             <div class="form-group">
+                                 <label class="col-md-2 control-label" ><%= t(:old_price) %> </label>
+                                 <div class="col-md-10">
+                                     <%= f.text_field :old_price, class: "form-control number_input" %>
+                                 </div>
+                             </div>
+                         </div>
+                             
+                         <div class="tab-pane has-padding addable-form" data-sample="product-property" id="control-tab4<%= index %>">
+                           <div class="addable-container">
+                             <% product.product_properties.each_with_index do |property,index| %>
+                               <%= render "naturesoft/products/admin/products/product_property", item: property, index: index %>
+                             <% end %>
+                           </div>
+                           <div class="row">
+                             <div class="col-md-2">
+                               <div class="text-left">
+                                 <a href="#add" class="btn btn-info addable-add"><%= t(:add_property) %> <i class="icon-plus2 position-center"></i></a>
+                               </div>
+                             </div>
+                           </div>
+                         </div>
+                     </div>
+                      <br />            
+                      <div class="text-right">
+                          <%= button_tag "#{t(:save)} <i class=\"icon-plus22 position-right\"></i>".html_safe, class: "btn btn-primary"%>
+                      </div>
+                    </div>
+                    
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    
+    </div>
+  </div>
+  <!-- /basic datatable -->
+  
+  <!-- thumbnail size sample form -->
+  <div class="image-form hide">
+    <%= render 'naturesoft/products/admin/products/image_form', item: Naturesoft::Products::Image.new, index: "<<index>>" %>
+  </div>
+  <!--/thumbnail size sample form -->
+  
+  <!-- choose properties for product -->
+  <div class="product-property hide">
+    <%= render 'naturesoft/products/admin/products/product_property', item: Naturesoft::Products::ProductProperty.new, index: "<<index>>" %>
+  </div>
+  <!--/choose properties for product -->
